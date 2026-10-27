@@ -23,7 +23,7 @@ client.on('messageCreate', message => {
 });
 
 // توكن البوت
-client.login('MTU2NDQwNzc0Mjc0NjMzMzI5NQ.GfhpL8.N5VwIpBin3m72B1tFda1O3NF0aNvXxRC0eCY4Y');
+client.login('MTU2NDQwNzc0Mjc0NjMzMzI5NQ.Gwyifj.NpBHRu9P5t07PQLvk1ko0Lv3YjV9jjPX7g22To');
 
 // إعداد سيرفر الويب للموقع
 const app = express();
