@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>داحم كود | تعليم برمجة</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #090611;
+            --card-bg: rgba(22, 16, 35, 0.75);
+            --card-border: rgba(168, 85, 247, 0.25);
+            --primary-accent: #a855f7;
+            --primary-glow: rgba(168, 85, 247, 0.45);
+            --text-main: #ffffff;
+            --text-secondary: #c0b6d2;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; font-family:'Tajawal',sans-serif; cursor:default; }
+        body { background:#090611; color:var(--text-main); min-height:100vh; overflow-x:hidden; position:relative; }
+
+        .space-bg {
+            position:fixed; inset:0; z-index:-5; overflow:hidden;
+            background:#090611;
+        }
+        .space-bg img {
+            width:125%; height:125%;
+            object-fit:cover;
+            position:absolute; top:-12%; left:-12%;
+            opacity:0.5;
+            filter:brightness(0.65) contrast(1.1);
+            animation: spaceMove 30s ease-in-out infinite alternate;
+        }
+        @keyframes spaceMove {
+            0% { transform: scale(1) translate(0,0); }
+            100% { transform: scale(1.08) translate(-2%,-1.5%); }
+        }
+        .space-overlay {
+            position:fixed; inset:0; z-index:-4;
+            background: radial-gradient(ellipse at 50% 30%, rgba(9,6,17,0.2) 0%, rgba(9,6,17,0.55) 70%, rgba(9,6,17,0.75) 100%);
+            pointer-events:none;
+        }
+
+        /* دوائر متحركة */
+        .ambient-bg {
+            position:fixed; top:0; left:0; width:100vw; height:100vh;
+            z-index:-3; overflow:hidden; pointer-events:none;
+        }
+        .giant-purple-circle {
+            position:absolute; top:-20vh; left:-20vw;
+            width:70vw; height:70vw;
+            border:40px solid rgba(168,85,247,0.12);
+            border-radius:50%;
+            box-shadow:0 0 100px rgba(168,85,247,0.06);
+            animation: rotateCircle 25s linear infinite;
+        }
+        .giant-purple-circle.c2 {
+            top:auto; bottom:-30vh; left:auto; right:-25vw;
+            width:55vw; height:55vw;
+            border-width:30px;
+            animation-duration:35s;
+            animation-direction:reverse;
+            opacity:0.7;
+        }
+        @keyframes rotateCircle {
+            0% { transform:rotate(0deg) scale(1); }
+            50% { transform:rotate(180deg) scale(1.03); }
+            100% { transform:rotate(360deg) scale(1); }
+        }
+
+        /* خطوط ضوئية متحركة */
+        .light-beam {
+            position:absolute; width:200%; height:2px;
+            background:linear-gradient(90deg,transparent,rgba(168,85,247,0.35),transparent);
+            transform:rotate(-35deg);
+            animation: beamMove 8s linear infinite;
+        }
+        .beam-1 { top:20%; left:-50%; animation-delay:0s; }
+        .beam-2 { top:55%; left:-30%; animation-delay:2.5s; }
+        .beam-3 { top:80%; left:-40%; animation-delay:5s; }
+        @keyframes beamMove {
+            0% { transform:translateY(-40px) rotate(-35deg); opacity:0; }
+            40% { opacity:1; }
+            100% { transform:translateY(280px) rotate(-35deg); opacity:0; }
+        }
+
+        /* نقاط / نجوم */
+        .stars { position:fixed; inset:0; z-index:-2; pointer-events:none; }
+        .star {
+            position:absolute; background:#fff; border-radius:50%;
+            animation: twinkle var(--d) ease-in-out infinite;
+        }
+        @keyframes twinkle {
+            0%,100% { opacity:0.15; transform:scale(1); }
+            50% { opacity:0.9; transform:scale(1.3); }
+        }
+
+        #canvas-bg {
+            position:fixed; top:0; left:0; width:100vw; height:100vh;
+            z-index:-2; pointer-events:none;
+        }
+
+        .cursor-dot {
+            width:8px; height:8px; background:var(--primary-accent); border-radius:50%;
+            position:fixed; pointer-events:none; z-index:9999; transform:translate(-50%,-50%);
+            box-shadow:0 0 10px var(--primary-accent);
+        }
+        .cursor-follower {
+            width:36px; height:36px; border:2px solid var(--primary-accent); border-radius:50%;
+            position:fixed; pointer-events:none; z-index:9998; transform:translate(-50%,-50%);
+            transition:transform .18s ease-out, background-color .2s;
+            box-shadow:0 0 15px rgba(168,85,247,0.25);
+        }
+        .particle {
+            position:fixed; pointer-events:none; border-radius:50%;
+            background:var(--primary-accent); box-shadow:0 0 8px var(--primary-accent);
+            z-index:9997; animation:particleFade .8s forwards ease-out;
+        }
+        @keyframes particleFade {
+            0% { opacity:.9; transform:scale(1) translate(0,0); }
+            100% { opacity:0; transform:scale(0) translate(var(--dx),var(--dy)); }
+        }
+
+        header {
+            display:flex; justify-content:space-between; align-items:center;
+            padding:15px 5%;
+            background:rgba(9,6,17,0.8); backdrop-filter:blur(16px);
+            position:sticky; top:0; z-index:100;
+            border-bottom:1px solid rgba(168,85,247,0.15);
+        }
+        .brand-logo { display:flex; align-items:center; gap:12px; text-decoration:none; }
+        .logo-img-wrapper {
+            position:relative; width:52px; height:52px; border-radius:50%; padding:2px;
+            background:linear-gradient(135deg,var(--primary-accent),rgba(255,255,255,0.2));
+            box-shadow:0 0 20px rgba(168,85,247,0.4);
+            animation:pulseGlow 3s infinite alternate; overflow:hidden;
+        }
+        @keyframes pulseGlow {
+            0% { box-shadow:0 0 15px rgba(168,85,247,0.3); }
+            100% { box-shadow:0 0 30px rgba(168,85,247,0.7); }
+        }
+        .logo-img-wrapper img { width:100%; height:100%; border-radius:50%; object-fit:cover; display:block; }
+        .logo-img-wrapper .fallback {
+            width:100%; height:100%; border-radius:50%; display:flex; align-items:center; justify-content:center;
+            font-size:22px; background:linear-gradient(145deg,#7b2cbf,#5a189a);
+        }
+        .brand-name { font-size:20px; font-weight:800; color:var(--text-main); }
+        .brand-name span { color:var(--primary-accent); }
+
+        nav ul { display:flex; list-style:none; gap:16px; flex-wrap:wrap; }
+        nav a {
+            color:var(--text-secondary); text-decoration:none; font-size:14px; font-weight:700;
+            transition:.3s; position:relative; padding:5px 0; cursor:pointer;
+        }
+        nav a:hover, nav a.active { color:var(--primary-accent); }
+        nav a::after {
+            content:''; position:absolute; bottom:0; right:0; width:0%; height:2px;
+            background:var(--primary-accent); transition:.3s; border-radius:2px;
+        }
+        nav a:hover::after, nav a.active::after { width:100%; }
+
+        .header-actions { display:flex; align-items:center; gap:12px; }
+        .btn-main {
+            background:var(--primary-accent); color:#090611; padding:9px 18px; border-radius:25px;
+            text-decoration:none; font-weight:800; font-size:14px; transition:.3s;
+            display:flex; align-items:center; gap:8px; box-shadow:0 0 15px rgba(168,85,247,0.3);
+            cursor:pointer; border:none;
+        }
+        .btn-main:hover { background:#9333ea; transform:translateY(-2px); box-shadow:0 5px 20px rgba(168,85,247,0.5); color:#fff; }
+
+        .hero { padding:50px 6% 30px; text-align:center; position:relative; z-index:2; }
+        .hero-badge {
+            display:inline-flex; align-items:center; gap:8px;
+            background:rgba(168,85,247,0.15); border:1px solid var(--card-border);
+            color:var(--primary-accent); padding:6px 18px; border-radius:30px;
+            font-size:13px; font-weight:700; margin-bottom:20px;
+        }
+        .hero h1 { font-size:40px; font-weight:900; margin-bottom:15px; color:#fff; line-height:1.25; text-shadow:0 2px 20px rgba(0,0,0,0.5); }
+        .hero h1 span {
+            background:linear-gradient(135deg,#fff 0%,var(--primary-accent) 100%);
+            -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+        }
+        .hero p { color:var(--text-secondary); font-size:16px; max-width:620px; margin:0 auto 25px; line-height:1.7; }
+
+        .tab-content { display:none; padding:0 6% 80px; position:relative; z-index:2; animation:fadeIn .4s ease-in-out; }
+        .tab-content.active { display:block; }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+        .section-title {
+            font-size:26px; font-weight:800; color:var(--primary-accent);
+            text-align:center; margin-bottom:36px; position:relative;
+        }
+        .section-title::after {
+            content:''; display:block; width:55px; height:3px; background:var(--primary-accent);
+            margin:10px auto 0; border-radius:2px; box-shadow:0 0 10px var(--primary-accent);
+        }
+
+        .grid-container { display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:24px; }
+        .card {
+            background:var(--card-bg); border:1px solid var(--card-border); border-radius:18px;
+            padding:26px; backdrop-filter:blur(14px);
+            transition:all .35s cubic-bezier(0.175,0.885,0.32,1.275);
+            display:flex; flex-direction:column; position:relative; overflow:hidden;
+        }
+        .card:hover {
+            transform:translateY(-7px); border-color:rgba(168,85,247,0.5);
+            box-shadow:0 14px 32px rgba(0,0,0,0.65),0 0 22px rgba(168,85,247,0.18);
+        }
+        .card-badge {
+            position:absolute; top:16px; left:16px;
+            background:rgba(168,85,247,0.15); border:1px solid rgba(168,85,247,0.3);
+            color:var(--primary-accent); padding:3px 11px; border-radius:20px; font-size:11px; font-weight:800;
+        }
+        .card-icon {
+            width:68px; height:68px; background:rgba(168,85,247,0.1); border:1px solid var(--card-border);
+            border-radius:50%; display:flex; align-items:center; justify-content:center;
+            font-size:26px; color:var(--primary-accent); margin-bottom:18px; transition:.3s;
+        }
+        .card:hover .card-icon { box-shadow:0 0 18px var(--primary-glow); transform:scale(1.05); }
+        .card-title { font-size:20px; font-weight:800; margin-bottom:5px; color:#fff; }
+        .card-subtitle { font-size:15px; font-weight:700; color:var(--primary-accent); margin-bottom:10px; }
+        .card-desc { color:var(--text-secondary); font-size:14px; line-height:1.6; flex-grow:1; }
+
+        .about-box {
+            background:var(--card-bg); border:1px solid var(--card-border); border-radius:18px;
+            padding:32px; margin-bottom:45px; backdrop-filter:blur(14px); text-align:center;
+            max-width:880px; margin-left:auto; margin-right:auto; box-shadow:0 10px 28px rgba(0,0,0,0.45);
+        }
+        .about-box h3 { font-size:22px; color:var(--primary-accent); margin-bottom:12px; font-weight:800; }
+        .about-box p { color:var(--text-secondary); font-size:15px; line-height:1.8; }
+
+        .steps-list { max-width:780px; margin:0 auto; display:flex; flex-direction:column; gap:28px; }
+        .step-item {
+            background:var(--card-bg); border:1px solid var(--card-border); border-radius:18px;
+            padding:22px; backdrop-filter:blur(14px); display:flex; flex-direction:column; gap:16px;
+        }
+        .step-header { display:flex; align-items:flex-start; gap:16px; }
+        .step-num {
+            background:var(--primary-accent); color:#090611; width:36px; height:36px; border-radius:50%;
+            display:flex; align-items:center; justify-content:center; font-weight:900; font-size:16px; flex-shrink:0;
+        }
+        .step-text { color:var(--text-secondary); font-size:15px; line-height:1.7; padding-top:4px; }
+        .step-text strong { color:#fff; font-size:16px; }
+        .step-text .tag {
+            display:inline-block; background:rgba(168,85,247,0.15); border:1px solid rgba(168,85,247,0.3);
+            color:var(--primary-accent); padding:2px 10px; border-radius:8px; font-size:13px; font-weight:700; margin:0 3px;
+        }
+        .step-image {
+            width:100%; border-radius:12px; overflow:hidden;
+            border:1px solid rgba(168,85,247,0.2); background:rgba(168,85,247,0.05);
+        }
+        .step-image img { width:100%; display:block; max-height:280px; object-fit:contain; background:#0d0a14; }
+        .step-image .placeholder {
+            aspect-ratio:16/9; display:flex; flex-direction:column; align-items:center; justify-content:center;
+            gap:10px; color:var(--text-secondary); font-size:14px; min-height:160px;
+        }
+        .step-image .placeholder i { font-size:28px; color:var(--primary-accent); opacity:.6; }
+
+        .media-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:20px; }
+        .media-card {
+            background:var(--card-bg); border:1px solid var(--card-border); border-radius:16px;
+            overflow:hidden; transition:.3s;
+        }
+        .media-card:hover { border-color:rgba(168,85,247,0.45); transform:translateY(-4px); box-shadow:0 10px 28px rgba(0,0,0,0.5); }
+        .media-placeholder {
+            aspect-ratio:16/10; background:rgba(168,85,247,0.06); border-bottom:1px solid var(--card-border);
+            display:flex; flex-direction:column; align-items:center; justify-content:center;
+            gap:10px; color:var(--text-secondary); font-size:14px;
+        }
+        .media-placeholder i { font-size:30px; color:var(--primary-accent); opacity:.7; }
+        .media-placeholder img { width:100%; height:100%; object-fit:cover; }
+        .media-info { padding:14px 16px; }
+        .media-info h4 { font-size:15px; font-weight:700; color:#fff; margin-bottom:4px; }
+        .media-info p { font-size:13px; color:var(--text-secondary); }
+
+        footer {
+            text-align:center; padding:30px 6%;
+            border-top:1px solid rgba(168,85,247,0.15);
+            background:rgba(6,4,11,0.85); color:var(--text-secondary); font-size:14px; position:relative; z-index:2;
+        }
+
+        @media (max-width:900px) {
+            header { padding:12px 3%; flex-wrap:wrap; gap:10px; }
+            nav ul { gap:10px; }
+            nav a { font-size:13px; }
+            .hero h1 { font-size:26px; }
+            .brand-name { font-size:16px; }
+            .logo-img-wrapper { width:42px; height:42px; }
+            .giant-purple-circle { width:120vw; height:120vw; top:-10vh; left:-50vw; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="space-bg">
+        <img src="bg-space.png" alt="Space Background">
+    </div>
+    <div class="space-overlay"></div>
+
+    <div class="ambient-bg">
+        <div class="giant-purple-circle"></div>
+        <div class="giant-purple-circle c2"></div>
+        <div class="light-beam beam-1"></div>
+        <div class="light-beam beam-2"></div>
+        <div class="light-beam beam-3"></div>
+    </div>
+    <div class="stars" id="stars"></div>
+    <canvas id="canvas-bg"></canvas>
+
+    <div class="cursor-dot" id="cursor-dot"></div>
+    <div class="cursor-follower" id="cursor-follower"></div>
+
+    <header>
+        <a href="#" class="brand-logo" onclick="switchTab('home'); return false;">
+            <div class="logo-img-wrapper">
+                <img src="https://cdn.discordapp.com/attachments/1564320379231670362/1564457729295388772/image.png?ex=6ae1564c&is=6ae004cc&hm=c3c3e0407a943727acff85a3e20b4606e30d3ce0c01331b8b736032e3168c018&" alt="صورة السيرفر" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="fallback" style="display:none;">🚀</div>
+            </div>
+            <div class="brand-name">داحم <span>كود</span></div>
+        </a>
+        <nav>
+            <ul>
+                <li><a class="nav-link active" onclick="switchTab('home')">الرئيسية</a></li>
+                <li><a class="nav-link" onclick="switchTab('videos')">الفيديوهات</a></li>
+                <li><a class="nav-link" onclick="switchTab('images')">الصور</a></li>
+                <li><a class="nav-link" onclick="switchTab('courses')">الدورات</a></li>
+                <li><a class="nav-link" onclick="switchTab('guide')">شرح التركيب</a></li>
+                <li><a class="nav-link" onclick="switchTab('support')">الدعم</a></li>
+            </ul>
+        </nav>
+        <div class="header-actions">
+            <a href="#" class="btn-main" onclick="switchTab('guide'); return false;">
+                <i class="fa-solid fa-book"></i> شرح التركيب
+            </a>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="hero-badge"><i class="fa-solid fa-sparkles"></i> تعليم برمجة داحم كود</div>
+        <h1>مرحباً بك في <span>داحم كود</span></h1>
+        <p>تعلم البرمجة، شوف الفيديوهات والصور، واتبع شرح تركيب البوت خطوة بخطوة مع الصور.</p>
+    </section>
+
+    <div id="home" class="tab-content active">
+        <div class="about-box">
+            <h3>نبذة عن داحم كود</h3>
+            <p>منصة تعليم برمجة داحم كود — دورات، فيديوهات، صور، شرح تركيب البوت خطوة بخطوة.</p>
+        </div>
+        <h2 class="section-title">إدارة المنصة</h2>
+        <div class="grid-container">
+            <div class="card">
+                <span class="card-badge">المالك</span>
+                <div class="card-icon"><i class="fa-solid fa-user-gear"></i></div>
+                <h3 class="card-title">صاحب المنصة</h3>
+                <div class="card-subtitle">أنت</div>
+                <p class="card-desc">المسؤول الأول عن الإدارة والإشراف الكامل.</p>
+            </div>
+            <div class="card">
+                <span class="card-badge">نائب المالك</span>
+                <div class="card-icon"><i class="fa-solid fa-user-shield"></i></div>
+                <h3 class="card-title">نائب صاحب المنصة</h3>
+                <div class="card-subtitle">المشرف</div>
+                <p class="card-desc">متابعة الدورات وتسهيل تجربة التعلم.</p>
+            </div>
+            <div class="card">
+                <span class="card-badge">المبرمج</span>
+                <div class="card-icon"><i class="fa-solid fa-code"></i></div>
+                <h3 class="card-title">مبرمج المنصة</h3>
+                <div class="card-subtitle">المطور</div>
+                <p class="card-desc">تطوير المحتوى والحلول التقنية.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="videos" class="tab-content">
+        <h2 class="section-title">قسم الفيديوهات</h2>
+        <div class="media-grid">
+            <div class="media-card"><div class="media-placeholder"><i class="fa-solid fa-video"></i><span>ضع رابط الفيديو / الصورة هنا</span></div><div class="media-info"><h4>فيديو تعليمي ١</h4><p>شرح أساسيات البرمجة</p></div></div>
+            <div class="media-card"><div class="media-placeholder"><i class="fa-solid fa-video"></i><span>ضع رابط الفيديو / الصورة هنا</span></div><div class="media-info"><h4>فيديو تعليمي ٢</h4><p>شرح HTML و CSS</p></div></div>
+            <div class="media-card"><div class="media-placeholder"><i class="fa-solid fa-video"></i><span>ضع رابط الفيديو / الصورة هنا</span></div><div class="media-info"><h4>فيديو تعليمي ٣</h4><p>شرح JavaScript</p></div></div>
+            <div class="media-card"><div class="media-placeholder"><i class="fa-solid fa-video"></i><span>ضع رابط الفيديو / الصورة هنا</span></div><div class="media-info"><h4>فيديو تعليمي ٤</h4><p>شرح تركيب البوت</p></div></div>
+        </div>
+    </div>
+
+    <div id="images" class="tab-content">
+        <h2 class="section-title">قسم الصور</h2>
+        <div class="media-grid">
+            <div class="media-card"><div class="media-placeholder"><i class="fa-solid fa-image"></i><span>ضع رابط الصورة هنا</span></div><div class="media-info"><h4>صورة توضيحية ١</h4><p>مثال واجهة</p></div></div>
+            <div class="media-card"><div class="media-placeholder"><i class="fa-solid fa-image"></i><span>ضع رابط الصورة هنا</span></div><div class="media-info"><h4>صورة توضيحية ٢</h4><p>مثال كود</p></div></div>
+            <div class="media-card"><div class="media-placeholder"><i class="fa-solid fa-image"></i><span>ضع رابط الصورة هنا</span></div><div class="media-info"><h4>صورة توضيحية ٣</h4><p>مثال مشروع</p></div></div>
+            <div class="media-card"><div class="media-placeholder"><i class="fa-solid fa-image"></i><span>ضع رابط الصورة هنا</span></div><div class="media-info"><h4>صورة توضيحية ٤</h4><p>مثال تصميم</p></div></div>
+        </div>
+    </div>
+
+    <div id="courses" class="tab-content">
+        <h2 class="section-title">الدورات</h2>
+        <div class="grid-container">
+            <div class="card"><span class="card-badge">مبتدئ</span><div class="card-icon"><i class="fa-solid fa-globe"></i></div><h3 class="card-title">أساسيات الويب</h3><div class="card-subtitle">١٢ درس</div><p class="card-desc">HTML و CSS و JavaScript من الصفر.</p></div>
+            <div class="card"><span class="card-badge">مبتدئ</span><div class="card-icon"><i class="fa-brands fa-python"></i></div><h3 class="card-title">بايثون</h3><div class="card-subtitle">١٥ درس</div><p class="card-desc">تعلم بايثون بطريقة بسيطة وعملية.</p></div>
+            <div class="card"><span class="card-badge">متقدم</span><div class="card-icon"><i class="fa-brands fa-react"></i></div><h3 class="card-title">ريأكت</h3><div class="card-subtitle">١٨ درس</div><p class="card-desc">بناء واجهات حديثة باستخدام React.</p></div>
+            <div class="card"><span class="card-badge">متوسط</span><div class="card-icon"><i class="fa-solid fa-database"></i></div><h3 class="card-title">قواعد البيانات</h3><div class="card-subtitle">١٠ دروس</div><p class="card-desc">SQL و NoSQL وتصميم قواعد بيانات.</p></div>
+        </div>
+    </div>
+
+    <div id="guide" class="tab-content">
+        <h2 class="section-title">شرح تركيب وتشغيل البوت</h2>
+        <div class="steps-list">
+            <div class="step-item">
+                <div class="step-header"><div class="step-num">1</div><div class="step-text"><strong>تركيب الملف</strong><br>روح على مجلد <span class="tag"><i class="fa-solid fa-folder"></i> Files</span> في السيرفر أو الجهاز.</div></div>
+                <div class="step-image"><img src="https://cdn.discordapp.com/attachments/1564320379231670362/1564448550891430010/image.png?ex=6ae14dc0&is=6adffc40&hm=4d37cc74d147761ca4430bb886bd3370aefbd91cddabe2af7f97b0565a435732&" alt="1" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"><div class="placeholder" style="display:none;"><i class="fa-solid fa-image"></i><span>Files</span></div></div>
+            </div>
+            <div class="step-item">
+                <div class="step-header"><div class="step-num">2</div><div class="step-text"><strong>رفع الملف</strong><br>اضغط زر <span class="tag"><i class="fa-solid fa-upload"></i> Upload</span> وارفع ملف البوت المضغوط.</div></div>
+                <div class="step-image"><img src="https://cdn.discordapp.com/attachments/1564320379231670362/1564448551491338250/image.png?ex=6ae14dc0&is=6adffc40&hm=be08a50ad6c79f2c7c9be2cd31929cd8ba9f56943602599ee9999ad89b483d1b&" alt="2" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"><div class="placeholder" style="display:none;"><i class="fa-solid fa-image"></i><span>Upload</span></div></div>
+            </div>
+            <div class="step-item">
+                <div class="step-header"><div class="step-num">3</div><div class="step-text"><strong>تسمية الملف</strong><br>بعد الرفع اكتب <span class="tag">اسم الملف</span> أو المجلد.</div></div>
+                <div class="step-image"><img src="https://cdn.discordapp.com/attachments/1564320379231670362/1564452425866158111/image.png?ex=6ae1515c&is=6adfffdc&hm=0639e72554724ae1dd286a575b72a41ff717c2fa0d05a685f729e87c45150d86&" alt="3" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"><div class="placeholder" style="display:none;"><i class="fa-solid fa-image"></i><span>الاسم</span></div></div>
+            </div>
+            <div class="step-item">
+                <div class="step-header"><div class="step-num">4</div><div class="step-text"><strong>فتح القائمة</strong><br>اضغط على <span class="tag"><i class="fa-solid fa-ellipsis"></i> ⋮</span> جنب الملف.</div></div>
+                <div class="step-image"><img src="https://cdn.discordapp.com/attachments/1564320379231670362/1564448552359567380/image.png?ex=6ae14dc0&is=6adffc40&hm=978870378ef970fefb24f492e92f7487ffa9aacecdefb3257e7120703707c104&" alt="4" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"><div class="placeholder" style="display:none;"><i class="fa-solid fa-image"></i><span>النقاط</span></div></div>
+            </div>
+            <div class="step-item">
+                <div class="step-header"><div class="step-num">5</div><div class="step-text"><strong>فك الضغط</strong><br>من القائمة اختر <span class="tag"><i class="fa-solid fa-box-open"></i> Unarchive</span>.</div></div>
+                <div class="step-image"><img src="https://cdn.discordapp.com/attachments/1564320379231670362/1564448553051357184/image.png?ex=6ae14dc1&is=6adffc41&hm=8e3b27b150de8b185da071709e6327e81abe5c18e413bd913855f30344732f64&" alt="5" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"><div class="placeholder" style="display:none;"><i class="fa-solid fa-image"></i><span>Unarchive</span></div></div>
+            </div>
+            <div class="step-item">
+                <div class="step-header"><div class="step-num">6</div><div class="step-text"><strong>حط التوكن</strong><br>ادخل <span class="tag">config</span> أو <span class="tag">index</span> وحط توكن البوت.</div></div>
+                <div class="step-image"><img src="https://cdn.discordapp.com/attachments/1564320379231670362/1564451808200368238/image.png?ex=6ae150c9&is=6adfff49&hm=2241cb5ffc5ded8b3e7e52e1de9d92e99e1c77571b5282c84a304c74249ba174&" alt="6" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"><div class="placeholder" style="display:none;"><i class="fa-solid fa-image"></i><span>config</span></div></div>
+            </div>
+            <div class="step-item">
+                <div class="step-header"><div class="step-num">7</div><div class="step-text"><strong>تشغيل البوت</strong><br>شغّل البوت (مثل <span class="tag">Start</span>).</div></div>
+                <div class="step-image"><img src="https://cdn.discordapp.com/attachments/1564320379231670362/1564448553768718459/image.png?ex=6ae14dc1&is=6adffc41&hm=1789a512f7bc4fc2bace33cbd6abb3948c01c10c38183241744d73a23b8c3430&" alt="7" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"><div class="placeholder" style="display:none;"><i class="fa-solid fa-image"></i><span>Start</span></div></div>
+            </div>
+        </div>
+
+        <h2 class="section-title" style="margin-top:60px;">حل الأخطاء (Errors)</h2>
+        <p style="text-align:center;color:var(--text-secondary);max-width:640px;margin:-20px auto 36px;font-size:15px;line-height:1.7;">بعد ما تركّب البوت وتشغّله، إذا ظهر خطأ في الكونسول اتبع الخطوات التالية لحلّه.</p>
+        <div class="steps-list">
+            <div class="step-item">
+                <div class="step-header"><div class="step-num">1</div><div class="step-text"><strong>شغّل البوت وراقب الكونسول</strong><br>اضغط <span class="tag">Start</span> وانتظر. شوف هل ظهر <span class="tag">Error</span> أو لا.</div></div>
+                <div class="step-image"><img src="https://cdn.discordapp.com/attachments/1564320379231670362/1564454433176166590/image.png?ex=6ae1533b&is=6ae001bb&hm=07367b3072c6c4f55083b53b39b5ff3ff93e08dc4beb89d231479daae7466baa&" alt="كونسول" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"><div class="placeholder" style="display:none;"><i class="fa-solid fa-image"></i><span>الكونسول</span></div></div>
+            </div>
+            <div class="step-item">
+                <div class="step-header"><div class="step-num">2</div><div class="step-text"><strong>إذا ظهر إيرور — حدد الملف والسطر</strong><br>اقرأ رسالة الخطأ. راح تلاقي اسم الملف ورقم السطر (مثال: <span class="tag">index.js:42</span>).</div></div>
+                <div class="step-image"><img src="https://cdn.discordapp.com/attachments/1564320379231670362/1564456877558075553/image-25_edit_583502581593087.jpg?ex=6ae15581&is=6ae00401&hm=313381d8a3c1eead93bbb0fdb6e10e16758246e09da49f59f2cd6f5e5967b44f&" alt="إيرور" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"><div class="placeholder" style="display:none;"><i class="fa-solid fa-image"></i><span>الإيرور</span></div></div>
+            </div>
+            <div class="step-item">
+                <div class="step-header"><div class="step-num">3</div><div class="step-text"><strong>افتح الملف وعدّل السطر</strong><br>روح للملف المذكور، ادخل على رقم السطر، وعدّل الكود.</div></div>
+                <div class="step-image"><img src="https://cdn.discordapp.com/attachments/1564320379231670362/1564455994652631202/HnVideoEditor_2026_10_27_044824926.gif?ex=6ae154af&is=6ae0032f&hm=0c66c6abfb82f4e2ed4ab67f77a178640f121257dea0e00331c094aaf9beb781&" alt="تعديل" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"><div class="placeholder" style="display:none;"><i class="fa-solid fa-image"></i><span>التعديل</span></div></div>
+            </div>
+            <div class="step-item">
+                <div class="step-header"><div class="step-num">4</div><div class="step-text"><strong>ارجع للكونسول واعمل Restart</strong><br>بعد التعديل اضغط <span class="tag">Restart</span> أو شغّل البوت من جديد.</div></div>
+                <div class="step-image"><img src="https://cdn.discordapp.com/attachments/1564320379231670362/1564456105780969633/image.png?ex=6ae154c9&is=6ae00349&hm=ec3ba82ee1660de9165097ce29898a26d1b345e2a8fcee32c1f686b586e77c98&" alt="ريستارت" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"><div class="placeholder" style="display:none;"><i class="fa-solid fa-image"></i><span>Restart</span></div></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="support" class="tab-content">
+        <h2 class="section-title">الدعم والتواصل</h2>
+        <div style="text-align:center;max-width:560px;margin:0 auto;" class="card">
+            <div class="card-icon" style="margin:0 auto 18px;"><i class="fa-solid fa-headset"></i></div>
+            <h3 class="card-title">تواصل معنا</h3>
+            <p class="card-desc" style="margin-bottom:22px;">لأي استفسار عن الدورات أو تركيب البوت.</p>
+            <a href="#" class="btn-main" style="display:inline-flex;justify-content:center;"><i class="fa-solid fa-paper-plane"></i> إرسال رسالة</a>
+        </div>
+    </div>
+
+    <footer><p>جميع الحقوق محفوظة &copy; 2026 تعليم برمجة داحم كود</p></footer>
+
+    <script>
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            if (event && event.currentTarget && event.currentTarget.classList.contains('nav-link')) {
+                event.currentTarget.classList.add('active');
+            } else {
+                document.querySelectorAll('.nav-link').forEach(l => {
+                    if (l.getAttribute('onclick') && l.getAttribute('onclick').includes("'"+tabId+"'")) l.classList.add('active');
+                });
+            }
+        }
+
+        // نجوم / نقاط متحركة
+        const stars=document.getElementById('stars');
+        for(let i=0;i<90;i++){
+            const s=document.createElement('div');
+            s.className='star';
+            const sz=Math.random()*2.2+0.4;
+            s.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${(Math.random()*4+2).toFixed(1)}s;animation-delay:${(Math.random()*5).toFixed(1)}s`;
+            stars.appendChild(s);
+        }
+
+        // Canvas orbs
+        const canvas=document.getElementById('canvas-bg');
+        const ctx=canvas.getContext('2d');
+        function resizeCanvas(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; }
+        resizeCanvas(); window.addEventListener('resize', resizeCanvas);
+        const orbs=[], colors=['rgba(168,85,247, ','rgba(126,34,206, '];
+        for(let i=0;i<5;i++){
+            orbs.push({
+                x:Math.random()*canvas.width, y:Math.random()*canvas.height,
+                radius:Math.random()*220+120,
+                color:colors[Math.floor(Math.random()*colors.length)],
+                alpha:Math.random()*0.1+0.03,
+                vx:(Math.random()-0.5)*0.35, vy:(Math.random()-0.5)*0.35
+            });
+        }
+        function animateBg(){
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            orbs.forEach(o=>{
+                o.x+=o.vx; o.y+=o.vy;
+                if(o.x<-o.radius)o.x=canvas.width+o.radius;
+                if(o.x>canvas.width+o.radius)o.x=-o.radius;
+                if(o.y<-o.radius)o.y=canvas.height+o.radius;
+                if(o.y>canvas.height+o.radius)o.y=-o.radius;
+                const g=ctx.createRadialGradient(o.x,o.y,0,o.x,o.y,o.radius);
+                g.addColorStop(0,o.color+o.alpha+')');
+                g.addColorStop(1,o.color+'0)');
+                ctx.fillStyle=g; ctx.beginPath(); ctx.arc(o.x,o.y,o.radius,0,Math.PI*2); ctx.fill();
+            });
+            requestAnimationFrame(animateBg);
+        }
+        animateBg();
+
+        const dot=document.getElementById('cursor-dot'), follower=document.getElementById('cursor-follower');
+        let mx=innerWidth/2,my=innerHeight/2,fx=mx,fy=my,last=0;
+        window.addEventListener('mousemove',e=>{
+            mx=e.clientX; my=e.clientY; dot.style.left=mx+'px'; dot.style.top=my+'px';
+            if(Date.Now()-last>35){ createParticle(mx,my); last=Date.now(); }
+        });
+        (function anim(){ fx+=(mx-fx)*.15; fy+=(my-fy)*.15; follower.style.left=fx+'px'; follower.style.top=fy+'px'; requestAnimationFrame(anim); })();
+        function createParticle(x,y){
+            const p=document.createElement('div'); p.className='particle';
+            const s=Math.random()*4+2; p.style.width=s+'px'; p.style.height=s+'px'; p.style.left=x+'px'; p.style.top=y+'px';
+            const a=Math.random()*Math.PI*2, sp=Math.random()*25+10;
+            p.style.setProperty('--dx',Math.cos(a)*sp+'px'); p.style.setProperty('--dy',Math.sin(a)*sp+'px');
+            document.body.appendChild(p); setTimeout(()=>p.remove(),800);
+        }
+        document.querySelectorAll('a,.card,.media-card,nav a,.btn-main,.step-item').forEach(el=>{
+            el.addEventListener('mouseenter',()=>{ follower.style.transform='translate(-50%,-50%) scale(1.6)'; follower.style.backgroundColor='rgba(168,85,247,0.15)'; });
+            el.addEventListener('mouseleave',()=>{ follower.style.transform='translate(-50%,-50%) scale(1)'; follower.style.backgroundColor='transparent'; });
+        });
+    </script>
+</body>
+</html>
